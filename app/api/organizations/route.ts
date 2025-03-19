@@ -14,10 +14,11 @@ interface LinkedRecords {
 
 export async function GET() {
   try {
+
     // Configure Airtable with Personal Access Token
-    const baseId = process.env.AIRTABLE_BASE_ID || "";
-    const tableId = process.env.AIRTABLE_TABLE_NAME || "";
-    const token = process.env.AIRTABLE_PAT || "";
+    const baseId = process.env.AIRTABLE_BASE_ID || "app16H4EjjKyeOv8l";
+    const tableId = process.env.AIRTABLE_TABLE_NAME || "tblh9V3TVD0B3FKeU";
+    const token = process.env.AIRTABLE_PAT || "pat9hMSRIv0gvgTod.563abbf67feeaaeb6cbec542319c7bab2a266097cbb0b01e39f093f98794bb04";
 
     // Use the Airtable library
     const base = new Airtable({ apiKey: token }).base(baseId);

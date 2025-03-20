@@ -55,7 +55,7 @@ AIRTABLE_PAT=your_airtable_personal_access_token
 1. Clone the repository:
 
 ```shellscript
-git clone [https://github.com/yourusername/ownership-economy-directory.git](https://github.com/KhalidEchchahid/Ownership_economy-_directory)
+git clone https://github.com/KhalidEchchahid/Ownership_economy-_directory
 cd Ownership_economy-_directory
 ```
 

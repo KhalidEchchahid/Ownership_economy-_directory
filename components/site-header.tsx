@@ -22,18 +22,6 @@ export function SiteHeader() {
             >
               Home
             </Link>
-            <Link
-              href="#"
-              className="transition-colors hover:text-foreground/80 text-muted-foreground"
-            >
-              About
-            </Link>
-            <Link
-              href="#"
-              className="transition-colors hover:text-foreground/80 text-muted-foreground"
-            >
-              Resources
-            </Link>
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
@@ -50,18 +38,6 @@ export function SiteHeader() {
                 <nav className="flex flex-col gap-4 mt-8">
                   <Link href="/" className="block px-2 py-1 text-lg">
                     Home
-                  </Link>
-                  <Link
-                    href="#"
-                    className="block px-2 py-1 text-lg text-muted-foreground"
-                  >
-                    About
-                  </Link>
-                  <Link
-                    href="#"
-                    className="block px-2 py-1 text-lg text-muted-foreground"
-                  >
-                    Resources
                   </Link>
                 </nav>
               </SheetContent>

@@ -109,7 +109,7 @@ export function OrganizationCard({
             <Building className="h-4 w-4 text-primary" />
             <Badge
               variant="secondary"
-              className="font-normal bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground"
+              className="font-normal bg-primary/10 text-primary dark:bg-primary/20 "
             >
               {organization.industry}
             </Badge>

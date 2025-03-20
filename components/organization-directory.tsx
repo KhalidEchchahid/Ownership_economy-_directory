@@ -1,36 +1,14 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import type { Organization } from "@/lib/types";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardFooter,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { useState, useEffect, useRef } from "react"
+import type { Organization } from "@/lib/types"
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Check,
   ChevronsUpDown,
@@ -46,166 +24,194 @@ import {
   Users,
   Landmark,
   Tag,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { OrganizationCard } from "./organization-card";
-import { OrganizationDialog } from "./organization-dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { OrganizationCard } from "./organization-card"
+import { OrganizationDialog } from "./organization-dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 export function OrganizationDirectory() {
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [filteredOrganizations, setFilteredOrganizations] = useState<
-    Organization[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [orgTypeFilter, setOrgTypeFilter] = useState("all");
-  const [ownershipFilters, setOwnershipFilters] = useState<string[]>([]);
-  const [industryFilters, setIndustryFilters] = useState<string[]>([]);
-  const [geographicFilter, setGeographicFilter] = useState("all");
-  const [governanceFilter, setGovernanceFilter] = useState("all");
-  const [selectedOrganization, setSelectedOrganization] =
-    useState<Organization | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [isFilterOpen, setIsFilterOpen] = useState(true);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [orgTypeFilter, setOrgTypeFilter] = useState("all")
+  const [ownershipFilters, setOwnershipFilters] = useState<string[]>([])
+  const [industryFilters, setIndustryFilters] = useState<string[]>([])
+  const [geographicFilter, setGeographicFilter] = useState("all")
+  const [governanceFilter, setGovernanceFilter] = useState("all")
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [isFilterOpen, setIsFilterOpen] = useState(true)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Fetch organizations from API
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const response = await fetch("/api/organizations");
+        const response = await fetch("/api/organizations")
         if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
+          throw new Error(`Error: ${response.status}`)
         }
-        const data = await response.json();
-        console.log("Fetched data:", data);
-        setOrganizations(data);
-        setFilteredOrganizations(data);
-      } catch (error) {
-        console.error("Error fetching organizations:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+        const data = await response.json()
 
-    fetchOrganizations();
-  }, []);
+        // Deduplicate organizations by ID to prevent duplicates
+        const uniqueOrgs = deduplicateOrganizations(data)
+        console.log("Fetched data:", uniqueOrgs)
+
+        setOrganizations(uniqueOrgs)
+        setFilteredOrganizations(uniqueOrgs)
+      } catch (error) {
+        console.error("Error fetching organizations:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchOrganizations()
+  }, [])
+
+  // Helper function to deduplicate organizations
+  const deduplicateOrganizations = (orgs: Organization[]): Organization[] => {
+    const uniqueIds = new Set()
+    return orgs.filter((org) => {
+      // If we've seen this ID before, filter it out
+      if (uniqueIds.has(org.id)) {
+        return false
+      }
+      // Otherwise, add it to our set and keep it
+      uniqueIds.add(org.id)
+      return true
+    })
+  }
 
   // Filter organizations based on search and filters
   useEffect(() => {
-    let result = [...organizations];
+    let result = [...organizations]
 
-    // Filter by search term
-    if (searchTerm) {
-      result = result.filter(
-        (org) =>
-          org.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (org.description &&
-            org.description.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+    // Filter by search term - check name, description, and other relevant fields
+    if (searchTerm && searchTerm.trim() !== "") {
+      const searchLower = searchTerm.toLowerCase().trim()
+      result = result.filter((org) => {
+        // Check name
+        if (org.name && org.name.toLowerCase().includes(searchLower)) {
+          return true
+        }
+
+        // Check description
+        if (org.description && org.description.toLowerCase().includes(searchLower)) {
+          return true
+        }
+
+        // Check industry
+        if (org.industry && org.industry.toLowerCase().includes(searchLower)) {
+          return true
+        }
+
+        // Check tags
+        if (
+          Array.isArray(org.tags) &&
+          org.tags.some((tag) => typeof tag === "string" && tag.toLowerCase().includes(searchLower))
+        ) {
+          return true
+        }
+
+        // No matches found
+        return false
+      })
     }
 
-    // Filter by organization type
+    // Filter by organization type - exact match required
     if (orgTypeFilter && orgTypeFilter !== "all") {
-      result = result.filter(
-        (org) => org.type_of_organization === orgTypeFilter
-      );
+      result = result.filter((org) => org.type_of_organization === orgTypeFilter)
     }
 
     // Filter by ownership structure (multi-select)
     if (ownershipFilters.length > 0) {
       result = result.filter((org) => {
-        if (!org.ownership_structure) return false;
+        if (!org.ownership_structure) return false
 
-        const structures = Array.isArray(org.ownership_structure)
-          ? org.ownership_structure
-          : [org.ownership_structure];
+        // Ensure ownership_structure is always treated as an array
+        const structures = Array.isArray(org.ownership_structure) ? org.ownership_structure : [org.ownership_structure]
 
-        return ownershipFilters.some((filter) => structures.includes(filter));
-      });
+        // Check if any of the selected filters match any of the organization's structures
+        return ownershipFilters.some((filter) =>
+          structures.some((structure) => typeof structure === "string" && structure === filter),
+        )
+      })
     }
 
     // Filter by industry (multi-select)
     if (industryFilters.length > 0) {
       result = result.filter((org) => {
-        if (!org.industry) return false;
-        return industryFilters.some((filter) => org.industry.includes(filter));
-      });
+        if (!org.industry) return false
+
+        // For industry, we need to check if the org's industry exactly matches any of the selected filters
+        return industryFilters.some((filter) => org.industry === filter)
+      })
     }
 
-    // Filter by geographic scope
+    // Filter by geographic scope - exact match required
     if (geographicFilter && geographicFilter !== "all") {
-      result = result.filter(
-        (org) => org.geographical_scope === geographicFilter
-      );
+      result = result.filter((org) => org.geographical_scope === geographicFilter)
     }
 
-    // Filter by governance model
+    // Filter by governance model - exact match required
     if (governanceFilter && governanceFilter !== "all") {
-      result = result.filter(
-        (org) => org.governance_model === governanceFilter
-      );
+      result = result.filter((org) => org.governance_model === governanceFilter)
     }
 
-    setFilteredOrganizations(result);
-  }, [
-    searchTerm,
-    orgTypeFilter,
-    ownershipFilters,
-    industryFilters,
-    geographicFilter,
-    governanceFilter,
-    organizations,
-  ]);
+    // Update filtered organizations
+    setFilteredOrganizations(result)
+  }, [searchTerm, orgTypeFilter, ownershipFilters, industryFilters, geographicFilter, governanceFilter, organizations])
 
   // Extract unique values for filter dropdowns
-  const orgTypes = [
-    ...new Set(organizations.map((org) => org.type_of_organization)),
-  ].filter(Boolean);
+  // We use a helper function to ensure we get clean, unique values
+  const getUniqueValues = (getter: (org: Organization) => string | string[] | undefined): string[] => {
+    const values = new Set<string>()
 
-  const ownershipStructures = [
-    ...new Set(
-      organizations.flatMap((org) =>
-        Array.isArray(org.ownership_structure)
-          ? org.ownership_structure
-          : [org.ownership_structure]
-      )
-    ),
-  ].filter(Boolean);
+    organizations.forEach((org) => {
+      const value = getter(org)
+      if (!value) return
 
-  const industries = [
-    ...new Set(organizations.map((org) => org.industry)),
-  ].filter(Boolean);
-  const geographicScopes = [
-    ...new Set(organizations.map((org) => org.geographical_scope)),
-  ].filter((scope): scope is string => typeof scope === "string");
-  const governanceModels = [
-    ...new Set(organizations.map((org) => org.governance_model)),
-  ].filter((model): model is string => typeof model === "string");
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (typeof v === "string" && v.trim()) {
+            values.add(v.trim())
+          }
+        })
+      } else if (typeof value === "string" && value.trim()) {
+        values.add(value.trim())
+      }
+    })
+
+    return Array.from(values).sort()
+  }
+
+  const orgTypes = getUniqueValues((org) => org.type_of_organization)
+  const ownershipStructures = getUniqueValues((org) => org.ownership_structure)
+  const industries = getUniqueValues((org) => org.industry)
+  const geographicScopes = getUniqueValues((org) => org.geographical_scope)
+  const governanceModels = getUniqueValues((org) => org.governance_model)
 
   const resetFilters = () => {
-    setSearchTerm("");
-    setOrgTypeFilter("all");
-    setOwnershipFilters([]);
-    setIndustryFilters([]);
-    setGeographicFilter("all");
-    setGovernanceFilter("all");
+    setSearchTerm("")
+    setOrgTypeFilter("all")
+    setOwnershipFilters([])
+    setIndustryFilters([])
+    setGeographicFilter("all")
+    setGovernanceFilter("all")
     if (searchInputRef.current) {
-      searchInputRef.current.focus();
+      searchInputRef.current.focus()
     }
-  };
+  }
 
   const handleViewDetails = (organization: Organization) => {
-    setSelectedOrganization(organization);
-    setIsDialogOpen(true);
-  };
+    setSelectedOrganization(organization)
+    setIsDialogOpen(true)
+  }
 
   const activeFilterCount = [
     orgTypeFilter !== "all" ? 1 : 0,
@@ -213,7 +219,7 @@ export function OrganizationDirectory() {
     industryFilters.length,
     geographicFilter !== "all" ? 1 : 0,
     governanceFilter !== "all" ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
+  ].reduce((a, b) => a + b, 0)
 
   if (loading) {
     return (
@@ -274,7 +280,7 @@ export function OrganizationDirectory() {
           ))}
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -308,22 +314,14 @@ export function OrganizationDirectory() {
                   defaultValue="grid"
                   value={viewMode}
                   className="w-[200px]"
-                  onValueChange={(value) =>
-                    setViewMode(value as "grid" | "list")
-                  }
+                  onValueChange={(value) => setViewMode(value as "grid" | "list")}
                 >
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger
-                      value="grid"
-                      className="flex items-center gap-1.5"
-                    >
+                    <TabsTrigger value="grid" className="flex items-center gap-1.5">
                       <Grid className="h-4 w-4" />
                       Grid
                     </TabsTrigger>
-                    <TabsTrigger
-                      value="list"
-                      className="flex items-center gap-1.5"
-                    >
+                    <TabsTrigger value="list" className="flex items-center gap-1.5">
                       <List className="h-4 w-4" />
                       List
                     </TabsTrigger>
@@ -332,11 +330,7 @@ export function OrganizationDirectory() {
               </div>
             </div>
 
-            <Collapsible
-              open={isFilterOpen}
-              onOpenChange={setIsFilterOpen}
-              className="border rounded-lg"
-            >
+            <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen} className="border rounded-lg">
               <div className="flex items-center justify-between px-4 py-2 bg-muted/50">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-primary" />
@@ -349,11 +343,7 @@ export function OrganizationDirectory() {
                 </div>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    {isFilterOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
+                    {isFilterOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </Button>
                 </CollapsibleTrigger>
               </div>
@@ -366,17 +356,12 @@ export function OrganizationDirectory() {
                       <Building2 className="h-4 w-4 text-primary" />
                       <span>Organization Type</span>
                     </div>
-                    <Select
-                      value={orgTypeFilter}
-                      onValueChange={setOrgTypeFilter}
-                    >
+                    <Select value={orgTypeFilter} onValueChange={setOrgTypeFilter}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Organization Type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">
-                          All Organization Types
-                        </SelectItem>
+                        <SelectItem value="all">All Organization Types</SelectItem>
                         {orgTypes.map((type) => (
                           <SelectItem key={type} value={type}>
                             {type}
@@ -398,8 +383,7 @@ export function OrganizationDirectory() {
                           variant="outline"
                           className={cn(
                             "w-full justify-between",
-                            ownershipFilters.length > 0 &&
-                              "border-primary/50 bg-primary/5"
+                            ownershipFilters.length > 0 && "border-primary/50 bg-primary/5",
                           )}
                         >
                           {ownershipFilters.length > 0 ? (
@@ -408,8 +392,8 @@ export function OrganizationDirectory() {
                               <X
                                 className="ml-2 h-4 w-4 hover:text-destructive"
                                 onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOwnershipFilters([]);
+                                  e.stopPropagation()
+                                  setOwnershipFilters([])
                                 }}
                               />
                             </>
@@ -431,11 +415,9 @@ export function OrganizationDirectory() {
                                   onSelect={() => {
                                     setOwnershipFilters((prev) =>
                                       prev.includes(structure)
-                                        ? prev.filter(
-                                            (item) => item !== structure
-                                          )
-                                        : [...prev, structure]
-                                    );
+                                        ? prev.filter((item) => item !== structure)
+                                        : [...prev, structure],
+                                    )
                                   }}
                                 >
                                   <div
@@ -443,12 +425,10 @@ export function OrganizationDirectory() {
                                       "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                                       ownershipFilters.includes(structure)
                                         ? "bg-primary text-primary-foreground"
-                                        : "opacity-50"
+                                        : "opacity-50",
                                     )}
                                   >
-                                    {ownershipFilters.includes(structure) && (
-                                      <Check className="h-3 w-3" />
-                                    )}
+                                    {ownershipFilters.includes(structure) && <Check className="h-3 w-3" />}
                                   </div>
                                   {structure}
                                 </CommandItem>
@@ -472,8 +452,7 @@ export function OrganizationDirectory() {
                           variant="outline"
                           className={cn(
                             "w-full justify-between",
-                            industryFilters.length > 0 &&
-                              "border-primary/50 bg-primary/5"
+                            industryFilters.length > 0 && "border-primary/50 bg-primary/5",
                           )}
                         >
                           {industryFilters.length > 0 ? (
@@ -482,8 +461,8 @@ export function OrganizationDirectory() {
                               <X
                                 className="ml-2 h-4 w-4 hover:text-destructive"
                                 onClick={(e) => {
-                                  e.stopPropagation();
-                                  setIndustryFilters([]);
+                                  e.stopPropagation()
+                                  setIndustryFilters([])
                                 }}
                               />
                             </>
@@ -505,11 +484,9 @@ export function OrganizationDirectory() {
                                   onSelect={() => {
                                     setIndustryFilters((prev) =>
                                       prev.includes(industry)
-                                        ? prev.filter(
-                                            (item) => item !== industry
-                                          )
-                                        : [...prev, industry]
-                                    );
+                                        ? prev.filter((item) => item !== industry)
+                                        : [...prev, industry],
+                                    )
                                   }}
                                 >
                                   <div
@@ -517,12 +494,10 @@ export function OrganizationDirectory() {
                                       "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                                       industryFilters.includes(industry)
                                         ? "bg-primary text-primary-foreground"
-                                        : "opacity-50"
+                                        : "opacity-50",
                                     )}
                                   >
-                                    {industryFilters.includes(industry) && (
-                                      <Check className="h-3 w-3" />
-                                    )}
+                                    {industryFilters.includes(industry) && <Check className="h-3 w-3" />}
                                   </div>
                                   {industry}
                                 </CommandItem>
@@ -540,23 +515,14 @@ export function OrganizationDirectory() {
                       <Globe className="h-4 w-4 text-primary" />
                       <span>Geographic Scope</span>
                     </div>
-                    <Select
-                      value={geographicFilter}
-                      onValueChange={setGeographicFilter}
-                    >
+                    <Select value={geographicFilter} onValueChange={setGeographicFilter}>
                       <SelectTrigger
-                        className={cn(
-                          "w-full",
-                          geographicFilter !== "all" &&
-                            "border-primary/50 bg-primary/5"
-                        )}
+                        className={cn("w-full", geographicFilter !== "all" && "border-primary/50 bg-primary/5")}
                       >
                         <SelectValue placeholder="Geographic Scope" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">
-                          All Geographic Scopes
-                        </SelectItem>
+                        <SelectItem value="all">All Geographic Scopes</SelectItem>
                         {geographicScopes.map((scope) => (
                           <SelectItem key={scope} value={scope}>
                             {scope}
@@ -572,23 +538,14 @@ export function OrganizationDirectory() {
                       <Landmark className="h-4 w-4 text-primary" />
                       <span>Governance Model</span>
                     </div>
-                    <Select
-                      value={governanceFilter}
-                      onValueChange={setGovernanceFilter}
-                    >
+                    <Select value={governanceFilter} onValueChange={setGovernanceFilter}>
                       <SelectTrigger
-                        className={cn(
-                          "w-full",
-                          governanceFilter !== "all" &&
-                            "border-primary/50 bg-primary/5"
-                        )}
+                        className={cn("w-full", governanceFilter !== "all" && "border-primary/50 bg-primary/5")}
                       >
                         <SelectValue placeholder="Governance Model" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">
-                          All Governance Models
-                        </SelectItem>
+                        <SelectItem value="all">All Governance Models</SelectItem>
                         {governanceModels.map((model) => (
                           <SelectItem key={model} value={model}>
                             {model}
@@ -624,11 +581,7 @@ export function OrganizationDirectory() {
                           key={filter}
                           variant="outline"
                           className="filter-pill filter-pill-active"
-                          onClick={() =>
-                            setOwnershipFilters((prev) =>
-                              prev.filter((f) => f !== filter)
-                            )
-                          }
+                          onClick={() => setOwnershipFilters((prev) => prev.filter((f) => f !== filter))}
                         >
                           {filter}
                           <X className="h-3 w-3 ml-1" />
@@ -640,11 +593,7 @@ export function OrganizationDirectory() {
                           key={filter}
                           variant="outline"
                           className="filter-pill filter-pill-active"
-                          onClick={() =>
-                            setIndustryFilters((prev) =>
-                              prev.filter((f) => f !== filter)
-                            )
-                          }
+                          onClick={() => setIndustryFilters((prev) => prev.filter((f) => f !== filter))}
                         >
                           {filter}
                           <X className="h-3 w-3 ml-1" />
@@ -693,22 +642,12 @@ export function OrganizationDirectory() {
       {/* Results count */}
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
-          Showing{" "}
-          <span className="font-medium text-foreground">
-            {filteredOrganizations.length}
-          </span>{" "}
-          of{" "}
-          <span className="font-medium text-foreground">
-            {organizations.length}
-          </span>{" "}
-          organizations
+          Showing <span className="font-medium text-foreground">{filteredOrganizations.length}</span> of{" "}
+          <span className="font-medium text-foreground">{organizations.length}</span> organizations
         </p>
         {searchTerm && (
           <p className="text-sm">
-            Search results for:{" "}
-            <span className="font-medium text-primary">
-              &quot;{searchTerm}&quot;
-            </span>
+            Search results for: <span className="font-medium text-primary">&quot;{searchTerm}&quot;</span>
           </p>
         )}
       </div>
@@ -717,17 +656,11 @@ export function OrganizationDirectory() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredOrganizations.length > 0 ? (
             filteredOrganizations.map((org) => (
-              <OrganizationCard
-                key={org.id}
-                organization={org}
-                onViewDetails={() => handleViewDetails(org)}
-              />
+              <OrganizationCard key={org.id} organization={org} onViewDetails={() => handleViewDetails(org)} />
             ))
           ) : (
             <div className="col-span-full text-center py-12 bg-muted/30 rounded-lg border border-dashed">
-              <p className="text-muted-foreground">
-                No organizations found matching your criteria.
-              </p>
+              <p className="text-muted-foreground">No organizations found matching your criteria.</p>
               <Button variant="outline" onClick={resetFilters} className="mt-4">
                 Reset filters
               </Button>
@@ -741,22 +674,11 @@ export function OrganizationDirectory() {
               <Card key={org.id} className="overflow-hidden card-hover">
                 <div className="flex flex-col md:flex-row">
                   <div className="p-4 md:p-6 flex-1">
-                    <h3 className="text-lg font-semibold text-primary">
-                      {org.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {org.type_of_organization}
-                    </p>
-                    {org.description && (
-                      <p className="text-sm line-clamp-2 mb-3">
-                        {org.description}
-                      </p>
-                    )}
+                    <h3 className="text-lg font-semibold text-primary">{org.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">{org.type_of_organization}</p>
+                    {org.description && <p className="text-sm line-clamp-2 mb-3">{org.description}</p>}
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <Badge
-                        variant="secondary"
-                        className="bg-primary/10 text-primary border-primary/20"
-                      >
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
                         {org.industry}
                       </Badge>
                       {org.geographical_scope && (
@@ -767,11 +689,7 @@ export function OrganizationDirectory() {
                     </div>
                   </div>
                   <div className="p-4 md:p-6 flex flex-row md:flex-col justify-between items-center md:items-end border-t md:border-t-0 md:border-l bg-muted/20">
-                    {org.year_founded && (
-                      <div className="text-sm text-muted-foreground">
-                        Est. {org.year_founded}
-                      </div>
-                    )}
+                    {org.year_founded && <div className="text-sm text-muted-foreground">Est. {org.year_founded}</div>}
                     <Button
                       variant="outline"
                       size="sm"
@@ -786,9 +704,7 @@ export function OrganizationDirectory() {
             ))
           ) : (
             <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
-              <p className="text-muted-foreground">
-                No organizations found matching your criteria.
-              </p>
+              <p className="text-muted-foreground">No organizations found matching your criteria.</p>
               <Button variant="outline" onClick={resetFilters} className="mt-4">
                 Reset filters
               </Button>
@@ -798,12 +714,9 @@ export function OrganizationDirectory() {
       )}
 
       {selectedOrganization && (
-        <OrganizationDialog
-          organization={selectedOrganization}
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-        />
+        <OrganizationDialog organization={selectedOrganization} open={isDialogOpen} onOpenChange={setIsDialogOpen} />
       )}
     </div>
-  );
+  )
 }
+
